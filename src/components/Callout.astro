@@ -1,0 +1,18 @@
+---
+// Retro game-GUI callout. Drop-in for blockquotes / warning / info boxes.
+interface Props { type?: "note" | "warn" | "info"; title?: string; }
+const { type = "note", title } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const meta = {
+  note: { cls: "callout--note", icon: "paw.png",            label: title ?? "Note" },
+  warn: { cls: "callout--warn", icon: "cat-sit.png",        label: title ?? "Heads up!" },
+  info: { cls: "callout--info", icon: "cat-sleep-grey.png", label: title ?? "Did you know" },
+}[type];
+---
+<aside class={`callout ${meta.cls}`} role="note">
+  <img src={`${base}ui/${meta.icon}`} alt="" class="callout__icon" />
+  <div>
+    <p class="font-pixel text-[10px] mb-1 text-cat-cocoa uppercase tracking-wide">{meta.label}</p>
+    <div><slot /></div>
+  </div>
+</aside>

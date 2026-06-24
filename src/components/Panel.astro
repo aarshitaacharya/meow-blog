@@ -1,0 +1,23 @@
+---
+// A modular pixel-art panel container. CSS-frame by default; add
+// `sprite` to switch to a /ui/panel-9slice.png border-image.
+interface Props {
+  title?: string;
+  tone?: "cream" | "pink" | "sky" | "tan";
+  sprite?: boolean;
+  class?: string;
+}
+const { title, tone = "cream", sprite = false, class: klass = "" } = Astro.props;
+const toneClass = { cream: "", pink: "frame--pink", sky: "frame--sky", tan: "frame--tan" }[tone];
+---
+<section class={`frame ${toneClass} ${sprite ? "frame--sprite" : ""} ${title ? "" : "p-5"} ${klass}`}>
+  {title && (
+    <header class="titlebar">
+      <img src={`${import.meta.env.BASE_URL}ui/paw.png`} alt="" class="w-3.5 h-3.5 pixelated" />
+      <span>{title}</span>
+    </header>
+  )}
+  <div class={title ? "p-5" : ""}>
+    <slot />
+  </div>
+</section>

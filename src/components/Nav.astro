@@ -1,0 +1,30 @@
+---
+const base = import.meta.env.BASE_URL;
+const here = Astro.url.pathname.replace(/\/$/, "");
+const links = [
+  { href: base, label: "Home" },
+  { href: `${base}about`, label: "About" },
+];
+const isActive = (h: string) => here === h.replace(/\/$/, "");
+---
+<nav class="flex flex-wrap items-center gap-2">
+  {links.map((l) => (
+    <a
+      href={l.href}
+      class={`btn btn--ghost text-[9px] py-2 px-3 ${isActive(l.href) ? "bg-cat-rose text-cat-cream" : ""}`}
+    >{l.label}</a>
+  ))}
+  {/* Hidden by default. Revealed only on a browser that already holds your token. */}
+  <a href={`${base}admin`} data-admin-link class="btn btn--pink text-[9px] py-2 px-3 hidden">✎ New post</a>
+</nav>
+
+<script>
+  // Show the "New post" button only for someone who has saved their token here.
+  // Visitors never see it; the admin page itself stays harmless without a token.
+  try {
+    const cfg = JSON.parse(localStorage.getItem("meowlog.cfg") || "{}");
+    if (cfg && cfg.token) {
+      document.querySelectorAll("[data-admin-link]").forEach((el) => el.classList.remove("hidden"));
+    }
+  } catch (_) {}
+</script>

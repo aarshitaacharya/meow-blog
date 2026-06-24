@@ -1,0 +1,18 @@
+---
+// Cat-eared accent panel — the ears sprite sits on top of a CSS frame.
+interface Props { tone?: "cream" | "tan"; class?: string; }
+const { tone = "cream", class: klass = "" } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const toneClass = tone === "tan" ? "frame--tan" : "";
+---
+<div class={`relative ${klass}`}>
+  <img
+    src={`${base}ui/cat-ears.png`}
+    alt=""
+    aria-hidden="true"
+    class="pointer-events-none absolute left-1/2 -translate-x-1/2 -top-7 w-28 pixelated z-10"
+  />
+  <div class={`frame ${toneClass} pt-12 px-6 pb-6`}>
+    <slot />
+  </div>
+</div>

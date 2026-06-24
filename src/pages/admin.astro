@@ -1,0 +1,379 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Panel from "../components/Panel.astro";
+import Callout from "../components/Callout.astro";
+// This page is fully client-side. Astro renders it to static HTML; all the
+// GitHub work happens in the browser with the visitor's own token.
+---
+<BaseLayout title="admin · meow.log" description="Write & publish a post.">
+  <div class="mb-6">
+    <h1 class="text-xl text-cat-cocoa mb-1 flex items-center gap-2">
+      <span class="animate-wiggle inline-block">🐾</span> new post
+    </h1>
+    <p class="text-sm text-cat-cocoa/80">Write below, hit publish, and it commits straight to your repo.</p>
+  </div>
+
+  <Callout type="warn" title="About your token">
+    Your Personal Access Token grants write access to the repo and is stored only
+    in <strong>this browser's localStorage</strong>. Use a <strong>fine-grained
+    token scoped to this single repository</strong> with <em>Contents: Read &amp;
+    write</em> only, and never use this admin page on a shared/public computer.
+    Anyone with this token can push to your repo, so treat it like a password.
+  </Callout>
+
+  <!-- ── Settings ── -->
+  <Panel title="connection.cfg" tone="sky" class="mb-6">
+    <div class="grid sm:grid-cols-2 gap-4">
+      <label class="block">
+        <span class="lbl">Owner (user/org)</span>
+        <input id="cfg-owner" class="inp" placeholder="your-username" autocomplete="off" />
+      </label>
+      <label class="block">
+        <span class="lbl">Repository</span>
+        <input id="cfg-repo" class="inp" placeholder="meowblog" autocomplete="off" />
+      </label>
+      <label class="block">
+        <span class="lbl">Branch</span>
+        <input id="cfg-branch" class="inp" placeholder="main" value="main" autocomplete="off" />
+      </label>
+      <label class="block">
+        <span class="lbl">Content folder</span>
+        <input id="cfg-path" class="inp" value="src/content/blog" autocomplete="off" />
+      </label>
+      <label class="block sm:col-span-2">
+        <span class="lbl">GitHub token (fine-grained PAT)</span>
+        <span class="flex gap-2">
+          <input id="cfg-token" type="password" class="inp flex-1" placeholder="github_pat_..." autocomplete="off" />
+          <button id="toggle-token" type="button" class="btn btn--ghost text-[9px] px-3 py-2">show</button>
+        </span>
+      </label>
+    </div>
+    <div class="flex flex-wrap items-center gap-3 mt-4">
+      <button id="save-cfg" type="button" class="btn btn--sky text-[9px] py-2 px-3">save settings</button>
+      <button id="test-cfg" type="button" class="btn btn--ghost text-[9px] py-2 px-3">test connection</button>
+      <button id="clear-token" type="button" class="btn btn--ghost text-[9px] py-2 px-3">forget token</button>
+      <span id="cfg-status" class="text-xs text-cat-cocoa/80"></span>
+    </div>
+  </Panel>
+
+  <!-- ── Editor ── -->
+  <Panel title="post.md" tone="cream" class="mb-6">
+    <div class="grid gap-4">
+      <label class="block">
+        <span class="lbl">Title</span>
+        <input id="f-title" class="inp" placeholder="My excellent post" />
+      </label>
+
+      <div class="grid sm:grid-cols-2 gap-4">
+        <label class="block">
+          <span class="lbl">Date</span>
+          <input id="f-date" type="date" class="inp" />
+        </label>
+        <label class="block">
+          <span class="lbl">Tags (comma separated)</span>
+          <input id="f-tags" class="inp" placeholder="css, astro, tutorial" />
+        </label>
+      </div>
+
+      <label class="block">
+        <span class="lbl">Description</span>
+        <input id="f-desc" class="inp" placeholder="One-line summary for cards & RSS." />
+      </label>
+
+      <label class="block">
+        <span class="lbl">Body (Markdown)</span>
+        <div class="flex flex-wrap gap-1.5 mb-2" id="md-toolbar">
+          <button type="button" data-md="**" data-wrap class="btn btn--ghost text-[9px] px-2 py-1.5">B</button>
+          <button type="button" data-md="_" data-wrap class="btn btn--ghost text-[9px] px-2 py-1.5 italic">i</button>
+          <button type="button" data-md="## " class="btn btn--ghost text-[9px] px-2 py-1.5">H2</button>
+          <button type="button" data-md="- " class="btn btn--ghost text-[9px] px-2 py-1.5">• list</button>
+          <button type="button" data-md="> " class="btn btn--ghost text-[9px] px-2 py-1.5">quote</button>
+          <button type="button" data-md="`" data-wrap class="btn btn--ghost text-[9px] px-2 py-1.5">code</button>
+        </div>
+        <textarea id="f-body" rows="12" class="inp font-mono text-sm leading-relaxed" placeholder="Write your post here..."></textarea>
+      </label>
+
+      <label class="flex items-center gap-2 text-sm text-cat-cocoa">
+        <input id="f-dateprefix" type="checkbox" checked class="w-4 h-4 accent-[#e7a59b]" />
+        Prefix filename with date (recommended — avoids slug collisions)
+      </label>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3 mt-5">
+      <button id="preview-btn" type="button" class="btn btn--ghost text-[10px]">toggle preview</button>
+      <button id="publish-btn" type="button" class="btn btn--pink">🚀 Publish post</button>
+      <span id="publish-status" class="text-xs"></span>
+    </div>
+  </Panel>
+
+  <!-- ── Preview (generated file) ── -->
+  <Panel title="preview · what will be committed" tone="tan" class="mb-6 hidden" >
+    <div id="preview-wrap">
+      <p class="lbl mb-1">filename</p>
+      <code id="pv-name" class="block font-mono text-xs bg-cat-cream border-2 border-cat-ink/20 rounded-md px-2 py-1.5 mb-3">—</code>
+      <p class="lbl mb-1">contents</p>
+      <pre class="font-mono text-xs bg-cat-cream border-2 border-cat-ink/20 rounded-md p-3 overflow-x-auto whitespace-pre-wrap"><code id="pv-body">—</code></pre>
+    </div>
+  </Panel>
+
+  <!-- ── Activity log ── -->
+  <Panel title="log" tone="cream">
+    <pre id="log" class="font-mono text-xs whitespace-pre-wrap text-cat-cocoa min-h-[2rem]">ready.</pre>
+  </Panel>
+</BaseLayout>
+
+<style is:global>
+  /* admin-only input styling (kept here so it doesn't bloat global.css) */
+  .lbl { @apply block font-pixel text-[9px] uppercase tracking-wide text-cat-cocoa mb-1.5; }
+  .inp {
+    @apply w-full bg-cat-cream border-3 border-cat-ink rounded-chunk px-3 py-2.5
+           text-cat-ink shadow-retro-sm outline-none transition-shadow;
+  }
+  .inp:focus { @apply shadow-press translate-x-px translate-y-px; }
+</style>
+
+<script>
+  // ───────────────────────── helpers ─────────────────────────
+  const $ = (id: string): any => document.getElementById(id);
+  const LS = "meowlog.cfg";
+
+  const log = (msg: string, kind = "") => {
+    const el = $("log");
+    const time = new Date().toLocaleTimeString();
+    const tag = kind === "err" ? "✗" : kind === "ok" ? "✓" : "·";
+    el.textContent += `\n[${time}] ${tag} ${msg}`;
+    el.scrollTop = el.scrollHeight;
+  };
+
+  const setStatus = (id: string, msg: string, kind = "") => {
+    const el = $(id);
+    el.textContent = msg;
+    el.className = "text-xs " + (kind === "err" ? "text-cat-rose font-bold" : kind === "ok" ? "text-cat-cocoa font-bold" : "text-cat-cocoa/80");
+  };
+
+  // UTF-8 safe base64 (btoa alone breaks on emoji/accents)
+  const toBase64Utf8 = (str: string) => {
+    const bytes = new TextEncoder().encode(str);
+    let bin = "";
+    for (const b of bytes) bin += String.fromCharCode(b);
+    return btoa(bin);
+  };
+
+  const slugify = (s: string) =>
+    s.toLowerCase().trim()
+      .replace(/[^\w\s-]/g, "")
+      .replace(/[\s_-]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "untitled";
+
+  // YAML-safe scalar (wrap in quotes, escape embedded quotes)
+  const yq = (s: any) => `"${String(s).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+
+  const buildFrontmatter = (d: any) => {
+    const tags = d.tags.length ? `[${d.tags.map(yq).join(", ")}]` : "[]";
+    return [
+      "---",
+      `title: ${yq(d.title)}`,
+      `description: ${yq(d.description)}`,
+      `date: ${d.date}`,
+      `tags: ${tags}`,
+      "draft: false",
+      "---",
+      "",
+      d.body.trim(),
+      "",
+    ].join("\n");
+  };
+
+  // ───────────────────────── settings (localStorage) ─────────────────────────
+  const cfgFields = ["owner", "repo", "branch", "path", "token"];
+
+  const loadCfg = () => {
+    let cfg: any = {};
+    try { cfg = JSON.parse(localStorage.getItem(LS) || "{}"); } catch {}
+    cfgFields.forEach((k) => { if (cfg[k] != null) $(`cfg-${k}`).value = cfg[k]; });
+  };
+
+  const readCfg = () => ({
+    owner: $("cfg-owner").value.trim(),
+    repo: $("cfg-repo").value.trim(),
+    branch: ($("cfg-branch").value.trim() || "main"),
+    path: ($("cfg-path").value.trim() || "src/content/blog").replace(/^\/|\/$/g, ""),
+    token: $("cfg-token").value.trim(),
+  });
+
+  const saveCfg = () => {
+    const cfg = readCfg();
+    localStorage.setItem(LS, JSON.stringify(cfg));
+    setStatus("cfg-status", "settings saved to this browser.", "ok");
+    log("settings saved.", "ok");
+  };
+
+  // ───────────────────────── GitHub REST API ─────────────────────────
+  const ghHeaders = (token: string) => ({
+    Authorization: `Bearer ${token}`,
+    Accept: "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+  });
+
+  async function ghTest(cfg: any) {
+    const r = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}`, {
+      headers: ghHeaders(cfg.token),
+    });
+    if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+    return r.json();
+  }
+
+  // GET existing file sha (so re-publishing the same slug updates instead of erroring)
+  async function ghGetSha(cfg: any, fullPath: string) {
+    const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURIComponent(fullPath).replace(/%2F/g, "/")}?ref=${cfg.branch}`;
+    const r = await fetch(url, { headers: ghHeaders(cfg.token) });
+    if (r.status === 404) return null;
+    if (!r.ok) throw new Error(`sha check failed: ${r.status}`);
+    return (await r.json()).sha;
+  }
+
+  async function ghPutFile(cfg: any, fullPath: string, contentStr: string, message: string, sha: string | null) {
+    const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURIComponent(fullPath).replace(/%2F/g, "/")}`;
+    const body: any = {
+      message,
+      content: toBase64Utf8(contentStr),
+      branch: cfg.branch,
+    };
+    if (sha) body.sha = sha;
+    const r = await fetch(url, { method: "PUT", headers: ghHeaders(cfg.token), body: JSON.stringify(body) });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || `${r.status} ${r.statusText}`);
+    return data;
+  }
+
+  // ───────────────────────── form -> file ─────────────────────────
+  const readPost = () => {
+    const title = $("f-title").value.trim();
+    const date = $("f-date").value || new Date().toISOString().slice(0, 10);
+    const tags = $("f-tags").value.split(",").map((t: string) => t.trim()).filter(Boolean);
+    const description = $("f-desc").value.trim();
+    const body = $("f-body").value;
+    return { title, date, tags, description, body };
+  };
+
+  const fileNameFor = (d: any) => {
+    const slug = slugify(d.title);
+    return $("f-dateprefix").checked ? `${d.date}-${slug}.md` : `${slug}.md`;
+  };
+
+  const refreshPreview = () => {
+    const d = readPost();
+    if (!d.title) { $("pv-name").textContent = "—"; $("pv-body").textContent = "—"; return; }
+    $("pv-name").textContent = `${readCfg().path}/${fileNameFor(d)}`;
+    $("pv-body").textContent = buildFrontmatter(d);
+  };
+
+  // ───────────────────────── publish ─────────────────────────
+  async function publish() {
+    const cfg = readCfg();
+    const d = readPost();
+
+    if (!cfg.owner || !cfg.repo || !cfg.token) {
+      setStatus("publish-status", "Fill in owner, repo, and token first.", "err");
+      return log("missing connection settings.", "err");
+    }
+    if (!d.title || !d.body.trim()) {
+      setStatus("publish-status", "Title and body are required.", "err");
+      return log("title/body empty.", "err");
+    }
+
+    saveCfg(); // persist before a network call
+    const fullPath = `${cfg.path}/${fileNameFor(d)}`;
+    const content = buildFrontmatter(d);
+    refreshPreview();
+
+    setStatus("publish-status", "publishing…", "");
+    log(`checking ${fullPath} …`);
+
+    try {
+      const sha = await ghGetSha(cfg, fullPath);
+      if (sha) log("file exists — will update.");
+      const res = await ghPutFile(
+        cfg,
+        fullPath,
+        content,
+        `post: ${d.title} (via /admin)`,
+        sha
+      );
+      const commitUrl = res.commit?.html_url;
+      setStatus("publish-status", "published! 🎉 deploy will run shortly.", "ok");
+      log(`committed ${fullPath}`, "ok");
+      if (commitUrl) log(`commit: ${commitUrl}`, "ok");
+      log("GitHub Actions is now building — your post appears once the deploy finishes (~1–2 min).");
+    } catch (err: any) {
+      setStatus("publish-status", "failed — see log.", "err");
+      log(`error: ${err.message}`, "err");
+      if (String(err.message).match(/40[13]/)) log("hint: token invalid or lacks 'Contents: write' on this repo.", "err");
+    }
+  }
+
+  // ───────────────────────── wiring ─────────────────────────
+  function init() {
+    loadCfg();
+    if (!$("f-date").value) $("f-date").value = new Date().toISOString().slice(0, 10);
+
+    $("save-cfg").addEventListener("click", saveCfg);
+    $("clear-token").addEventListener("click", () => {
+      $("cfg-token").value = "";
+      const cfg = readCfg(); localStorage.setItem(LS, JSON.stringify(cfg));
+      setStatus("cfg-status", "token forgotten.", "ok"); log("token cleared.", "ok");
+    });
+    $("toggle-token").addEventListener("click", () => {
+      const t = $("cfg-token");
+      const show = t.type === "password";
+      t.type = show ? "text" : "password";
+      $("toggle-token").textContent = show ? "hide" : "show";
+    });
+    $("test-cfg").addEventListener("click", async () => {
+      const cfg = readCfg();
+      if (!cfg.owner || !cfg.repo || !cfg.token) return setStatus("cfg-status", "fill owner, repo, token.", "err");
+      setStatus("cfg-status", "testing…");
+      try {
+        const repo = await ghTest(cfg);
+        setStatus("cfg-status", `connected to ${repo.full_name} ✓`, "ok");
+        log(`connected: ${repo.full_name} (default branch: ${repo.default_branch})`, "ok");
+      } catch (e: any) {
+        setStatus("cfg-status", "connection failed.", "err");
+        log(`connection failed: ${e.message}`, "err");
+      }
+    });
+
+    // markdown toolbar
+    $("md-toolbar").addEventListener("click", (e: any) => {
+      const btn = e.target.closest("button[data-md]");
+      if (!btn) return;
+      const ta = $("f-body");
+      const { selectionStart: s, selectionEnd: en, value: v } = ta;
+      const token = btn.dataset.md;
+      if (btn.hasAttribute("data-wrap")) {
+        ta.value = v.slice(0, s) + token + v.slice(s, en) + token + v.slice(en);
+        ta.selectionStart = s + token.length; ta.selectionEnd = en + token.length;
+      } else {
+        const lineStart = v.lastIndexOf("\n", s - 1) + 1;
+        ta.value = v.slice(0, lineStart) + token + v.slice(lineStart);
+        ta.selectionStart = ta.selectionEnd = s + token.length;
+      }
+      ta.focus(); refreshPreview();
+    });
+
+    $("preview-btn").addEventListener("click", () => {
+      const pv = document.querySelector("section.frame--tan");
+      pv?.classList.toggle("hidden");
+      refreshPreview();
+    });
+
+    ["f-title", "f-date", "f-tags", "f-desc", "f-body", "f-dateprefix"].forEach((id) =>
+      $(id).addEventListener("input", refreshPreview)
+    );
+
+    $("publish-btn").addEventListener("click", publish);
+    log("admin ready. add your settings to begin.");
+  }
+
+  init();
+</script>

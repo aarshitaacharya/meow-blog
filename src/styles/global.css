@@ -1,0 +1,177 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Fonts (free, CDN). Swap for self-hosted if you want zero external calls ── */
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Quicksand:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap");
+
+@layer base {
+  :root {
+    --ink: #3a2c24;
+    --cream: #f7ecdd;
+    --tan: #e8c9a3;
+    --pink: #f4cdc6;
+    --sky: #bcd7e3;
+  }
+
+  html {
+    /* dotted pastel "graph paper" backdrop */
+    background-color: #fbf4ea;
+    background-image:
+      radial-gradient(rgba(138, 106, 79, 0.18) 1.5px, transparent 1.6px);
+    background-size: 18px 18px;
+    color: var(--ink);
+    scroll-behavior: smooth;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+
+  body { @apply font-body text-cat-ink; }
+
+  h1, h2, h3 { @apply font-pixel leading-relaxed; }
+
+  /* Pixel art must never blur */
+  .pixelated { image-rendering: pixelated; image-rendering: crisp-edges; }
+
+  a:focus-visible, button:focus-visible {
+    outline: 3px dashed var(--ink);
+    outline-offset: 3px;
+  }
+}
+
+@layer components {
+  /* ─────────────────────────────────────────────────────────────
+     FALLBACK PIXEL FRAME (pure CSS — no image needed)
+     This is what every Panel/Callout/Card uses until you drop in a
+     real 9-slice sprite. Replace by adding `.frame--sprite` (below).
+     ───────────────────────────────────────────────────────────── */
+  .frame {
+    @apply relative rounded-chunk border-3 border-cat-ink bg-cat-cream shadow-retro;
+  }
+  /* chunky inner bevel so it reads as a game panel, not a flat div */
+  .frame::after {
+    content: "";
+    position: absolute;
+    inset: 3px;
+    border-radius: 10px;
+    pointer-events: none;
+    box-shadow: inset 0 3px 0 0 rgba(255, 255, 255, 0.6),
+                inset 0 -4px 0 0 rgba(58, 44, 36, 0.1);
+  }
+  .frame--pink { @apply bg-cat-pink; }
+  .frame--sky  { @apply bg-cat-sky; }
+  .frame--tan  { @apply bg-cat-tan; }
+
+  /* OPTIONAL: real 9-slice sprite border.
+     Export a tileable panel as /ui/panel-9slice.png and add `frame--sprite`
+     to any .frame to switch from CSS borders to your pixel art. */
+  .frame--sprite {
+    border: 12px solid transparent;
+    border-image: url("/ui/panel-9slice.png") 12 fill / 12px / 0 round;
+    box-shadow: var(--tw-shadow, 5px 5px 0 0 #3a2c24);
+    background: transparent;
+  }
+  .frame--sprite::after { display: none; }
+
+  /* Windowed title bar (the "181122" header look from the sheet) */
+  .titlebar {
+    @apply font-pixel text-[10px] tracking-wider text-cat-cream
+           bg-cat-ink rounded-t-[11px] px-3 py-2 flex items-center gap-2;
+    margin: -3px -3px 0 -3px; /* sit flush on the frame border */
+  }
+
+  /* ── Retro pill button ── */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 font-pixel text-[11px]
+           uppercase tracking-wide text-cat-cream bg-cat-mocha
+           border-3 border-cat-ink rounded-pill px-4 py-2.5 shadow-retro-sm
+           transition-transform duration-75 select-none cursor-pointer;
+  }
+  .btn:hover { @apply -translate-y-0.5; }
+  .btn:active { @apply translate-x-0.5 translate-y-0.5 shadow-press; }
+  .btn--pink { @apply bg-cat-rose; }
+  .btn--sky  { @apply bg-cat-blue text-cat-ink; }
+  .btn--ghost { @apply bg-cat-cream text-cat-ink; }
+
+  /* ── Callout / warning / info boxes ── */
+  .callout {
+    @apply frame px-4 py-3 my-5 flex gap-3 items-start text-[0.95rem] leading-relaxed;
+  }
+  .callout__icon {
+    @apply shrink-0 w-7 h-7 pixelated mt-0.5;
+  }
+  .callout--warn { @apply frame--pink; }
+  .callout--info { @apply frame--sky; }
+  .callout--note { @apply frame--tan; }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   MARKDOWN / PROSE — retro game-GUI treatment for post bodies.
+   Scoped under .prose-cat so it never leaks into UI chrome.
+   ───────────────────────────────────────────────────────────── */
+@layer components {
+  .prose-cat { @apply text-cat-ink leading-7; }
+
+  .prose-cat h1 { @apply text-2xl mt-10 mb-4 text-cat-cocoa; }
+  .prose-cat h2 { @apply text-xl mt-9 mb-3 text-cat-cocoa; }
+  .prose-cat h3 { @apply text-base mt-7 mb-2 text-cat-mocha; }
+
+  .prose-cat p { @apply my-4; }
+  .prose-cat a {
+    @apply font-semibold text-cat-rose underline decoration-wavy
+           decoration-cat-rose/60 underline-offset-4 hover:text-cat-cocoa;
+  }
+  .prose-cat strong { @apply font-bold text-cat-cocoa; }
+
+  .prose-cat ul { @apply my-4 space-y-1.5 list-none pl-6; }
+  .prose-cat ul > li { @apply relative; }
+  /* paw-print bullets via sprite, with a CSS fallback dot */
+  .prose-cat ul > li::before {
+    content: "";
+    position: absolute;
+    left: -1.4rem;
+    top: 0.35em;
+    width: 1rem;
+    height: 1rem;
+    background: url("/ui/paw.png") center / contain no-repeat,
+                radial-gradient(var(--ink) 40%, transparent 42%); /* fallback dot */
+    image-rendering: pixelated;
+  }
+  .prose-cat ol { @apply my-4 space-y-1.5 list-decimal pl-7 marker:font-pixel marker:text-cat-rose; }
+
+  /* Blockquote -> framed game dialog box */
+  .prose-cat blockquote {
+    @apply frame frame--tan not-italic my-6 px-5 py-4 text-cat-cocoa;
+  }
+  .prose-cat blockquote p { @apply my-1; }
+
+  /* Inline code */
+  .prose-cat :not(pre) > code {
+    @apply font-mono text-[0.85em] bg-cat-parchment text-cat-cocoa
+           border-2 border-cat-ink/30 rounded-md px-1.5 py-0.5;
+  }
+
+  /* Shiki code blocks -> framed, with a little title bar */
+  .prose-cat pre {
+    @apply font-mono text-sm rounded-chunk border-3 border-cat-ink
+           shadow-retro-sm p-4 my-6 overflow-x-auto;
+    /* Shiki sets its own bg via the catppuccin-latte theme */
+  }
+  .prose-cat pre code { @apply bg-transparent border-0 p-0; }
+
+  .prose-cat img { @apply rounded-chunk border-3 border-cat-ink shadow-retro-sm my-6; }
+  .prose-cat hr {
+    @apply my-8 border-0 h-6 bg-repeat-x;
+    background-image: url("/ui/paw.png");
+    background-size: 22px 22px;
+    background-position: center;
+    opacity: 0.7;
+  }
+  .prose-cat table {
+    @apply w-full my-6 border-3 border-cat-ink rounded-chunk overflow-hidden;
+  }
+  .prose-cat th { @apply bg-cat-mocha text-cat-cream font-pixel text-[10px] p-2.5 text-left; }
+  .prose-cat td { @apply border-t-2 border-cat-ink/15 p-2.5; }
+}

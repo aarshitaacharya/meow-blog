@@ -1,0 +1,39 @@
+---
+// Blog card: the pink pixel-paw avatar + title, with a framed game-dialog look.
+interface Props {
+  url: string;
+  title: string;
+  description?: string;
+  date: Date;
+  tags?: string[];
+}
+const { url, title, description, date, tags = [] } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const human = date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+const iso = date.toISOString().slice(0, 10);
+---
+<article class="frame group hover:-translate-y-1 transition-transform duration-100 p-0 overflow-hidden">
+  <div class="titlebar justify-between">
+    <span>meow.log</span>
+    <time datetime={iso} class="opacity-80">{human}</time>
+  </div>
+
+  <div class="p-5 flex gap-4">
+    <img src={`${base}ui/blog-paw.png`} alt="" class="w-12 h-12 shrink-0 pixelated mt-0.5" />
+    <div class="min-w-0">
+      <h3 class="text-base text-cat-cocoa mb-2 leading-relaxed">
+        <a href={url} class="hover:text-cat-rose">{title}</a>
+      </h3>
+      {description && <p class="text-cat-ink/80 text-sm mb-4 leading-relaxed">{description}</p>}
+
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <ul class="flex flex-wrap gap-2">
+          {tags.map((t) => (
+            <li class="font-pixel text-[8px] uppercase bg-cat-parchment border-2 border-cat-ink/30 rounded-pill px-2 py-1">#{t}</li>
+          ))}
+        </ul>
+        <a href={url} class="btn btn--sky text-[9px] py-2 px-3">OK →</a>
+      </div>
+    </div>
+  </div>
+</article>

@@ -1,0 +1,46 @@
+name: Build & Deploy (gh-pages)
+
+on:
+  push:
+    branches: [main] # fires on every push to main — including the /admin commits
+  workflow_dispatch: {} # lets you trigger a manual rebuild from the Actions tab
+
+# Allow the workflow to push to the gh-pages branch
+permissions:
+  contents: write
+
+# Cancel an in-progress run if you publish two posts back-to-back
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Astro site
+        run: npm run build:nocheck
+        # Use "npm run build" instead if you want `astro check` to gate deploys.
+
+      - name: Deploy to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: gh-pages
+          # peaceiris adds a .nojekyll file automatically so /_astro assets serve.
+          user_name: "github-actions[bot]"
+          user_email: "github-actions[bot]@users.noreply.github.com"
+          commit_message: "deploy: ${{ github.event.head_commit.message }}"
