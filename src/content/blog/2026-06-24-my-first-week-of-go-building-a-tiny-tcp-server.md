@@ -6,8 +6,6 @@ tags: ["go", "tcp"]
 draft: false
 ---
 
-# My first week of Go: building a tiny TCP server
-
 _A beginner's notes on writing a small TCP server in Go — what confused me, what clicked, and the one keyword that let it talk to more than one person at a time._
 
 I spent this week learning Go by building a small TCP server. Nothing big — just something that listens on a port and talks back. Here is what I picked up, in plain terms.
