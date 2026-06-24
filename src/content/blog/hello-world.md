@@ -6,7 +6,7 @@ tags: ["meta", "astro", "pixel-art"]
 draft: false
 ---
 
-Welcome to **meow.log** — a tiny technical blog that runs 100% free on GitHub
+Welcome to **meow.log** — a tiny technical blog that runs on GitHub
 Pages, builds itself with GitHub Actions, and lets me publish new posts straight
 from the browser.
 
