@@ -1,8 +1,8 @@
 ---
 title: "My first week of Go: building a tiny TCP server"
-description: ""
+description: "How I built a TCP server in Go from scratch and what actually made things click."
 date: 2026-06-24
-tags: []
+tags: ["go", "tcp"]
 draft: false
 ---
 
