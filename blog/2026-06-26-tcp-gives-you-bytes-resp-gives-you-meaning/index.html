@@ -1,0 +1,52 @@
+<!DOCTYPE html><html lang="en"> <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Why raw bytes are not enough, and how Redis solved message framing with a dead simple protocol."><link rel="icon" type="image/png" href="/meow-blog/ui/paw.png"><title>TCP gives you bytes. RESP gives you meaning. · meow.log</title><link rel="stylesheet" href="/meow-blog/_astro/_slug_.Dyow2SCz.css"><script type="module" src="/meow-blog/_astro/hoisted.C_y83067.js"></script></head> <body class="min-h-screen flex flex-col items-center px-3 py-6 sm:py-10"> <!-- ── The whole site lives inside one centered pixel panel ── --> <div class="w-full max-w-3xl frame !bg-cat-cream p-0 overflow-hidden"> <!-- window title bar --> <div class="titlebar !rounded-none justify-between !m-0 px-4 py-2.5"> <span class="flex items-center gap-2"> <span class="flex gap-1" aria-hidden="true"> <i class="w-2.5 h-2.5 rounded-full bg-cat-rose block"></i> <i class="w-2.5 h-2.5 rounded-full bg-cat-butter block"></i> <i class="w-2.5 h-2.5 rounded-full bg-cat-blue block"></i> </span>
+~/meow.log
+</span> <span class="opacity-70 text-[8px]">v1.0.0</span> </div> <!-- ── Header: PLAY-sign logo + nav ── --> <header class="flex flex-wrap items-center justify-between gap-4 px-5 sm:px-8 pt-6 pb-4"> <a href="/meow-blog/" class="flex items-center gap-3 group"> <img src="/meow-blog/ui/play-sign.png" alt="meow.log" class="h-11 pixelated drop-shadow-[3px_3px_0_#3a2c24] group-hover:animate-wiggle"> <span class="sr-only">meow.log home</span> </a> <nav class="flex flex-wrap items-center gap-2"> <a href="/meow-blog/" class="btn btn--ghost text-[9px] py-2 px-3 ">Home</a><a href="/meow-blog/about" class="btn btn--ghost text-[9px] py-2 px-3 ">About</a>  <a href="/meow-blog/admin" data-admin-link class="btn btn--pink text-[9px] py-2 px-3 hidden">✎ New post</a> </nav>  </header> <hr class="border-0 h-1 bg-cat-ink/10 mx-5 sm:mx-8"> <!-- ── Page content ── --> <main class="px-5 sm:px-8 py-7">  <a href="/meow-blog/" class="btn btn--ghost text-[9px] py-1.5 px-3 mb-6">← back</a> <article> <header class="mb-6"> <h1 class="text-2xl sm:text-3xl text-cat-cocoa leading-relaxed mb-3">TCP gives you bytes. RESP gives you meaning.</h1> <div class="flex flex-wrap items-center gap-3 text-sm text-cat-cocoa/80"> <time class="font-pixel text-[10px]">June 26, 2026</time> <ul class="flex flex-wrap gap-2"> <li class="font-pixel text-[8px] uppercase bg-cat-parchment border-2 border-cat-ink/30 rounded-pill px-2 py-1">#redis</li><li class="font-pixel text-[8px] uppercase bg-cat-parchment border-2 border-cat-ink/30 rounded-pill px-2 py-1">#protocols</li> </ul> </div> <p class="mt-3 text-cat-ink/80 italic">Why raw bytes are not enough, and how Redis solved message framing with a dead simple protocol.</p> </header> <div class="flex items-center justify-center gap-3 my-8 select-none" aria-hidden="true"> <img src="/meow-blog/ui/paw.png" alt="" class="w-5 h-5 pixelated opacity-70 animate-float" style="animation-delay:0s"><img src="/meow-blog/ui/paw.png" alt="" class="w-5 h-5 pixelated opacity-70 animate-float" style="animation-delay:0.25s"><img src="/meow-blog/ui/paw.png" alt="" class="w-5 h-5 pixelated opacity-70 animate-float" style="animation-delay:0.5s"><img src="/meow-blog/ui/paw.png" alt="" class="w-5 h-5 pixelated opacity-70 animate-float" style="animation-delay:0.75s"><img src="/meow-blog/ui/paw.png" alt="" class="w-5 h-5 pixelated opacity-70 animate-float" style="animation-delay:1s"> </div> <div class="prose-cat">  <p>Previously, I built a TCP server. It could accept connections, read bytes, and write bytes back. It worked. But there was a quiet problem hiding in it that I did not fully appreciate until this week.</p>
+<p>TCP only promises one thing: the bytes you send will arrive, in order, without getting lost. That is it. TCP has no idea where one message ends and the next one begins. If I send <code>PING</code> twice, TCP sees <code>PINGPING</code>. Eight bytes. No separator. No boundary. Just a stream.</p>
+<p>This is called the <strong>framing problem</strong>. And every protocol that runs on top of TCP has to solve it.</p>
+<h2 id="why-splitting-on-spaces-or-newlines-breaks-fast">Why splitting on spaces or newlines breaks fast</h2>
+<p>My server from last week checked if the incoming string was exactly <code>"PING"</code>. That worked because <code>PING</code> is one word with no spaces or newlines inside it.</p>
+<p>Now imagine you want to store a user bio in a key-value store.</p>
+<ul>
+<li>Key: <code>user:101</code></li>
+<li>Value: <code>i love coding and\n swimming</code></li>
+</ul>
+<p>A naive approach sends it like this:</p>
+<p><code>SET user:101 i love coding and\n swimming</code></p>
+<p>The server has no idea where the value starts, where it ends, or whether that <code>\n</code> in the middle means the command is over or is part of the data. You could try quoting the value, or escaping the newline, but now your parser is getting complicated and fragile. This is the mess every protocol is trying to avoid.</p>
+<h2 id="what-resp-is">What RESP is</h2>
+<p>Redis solved this with RESP (REdis Serialization Protocol). The goals were simple: fast for computers to parse, readable enough for a human to debug with <code>nc</code>.</p>
+<p>The core idea is that every message starts with a <strong>prefix byte</strong> that tells the parser exactly what type of data is coming next. No guessing. No scanning for delimiters inside your data. Just read the first byte and you already know what to do.</p>
+<blockquote>
+<p>RESP is not clever. It is just strict. And strictness is what makes it fast.</p>
+</blockquote>
+<p>Today I looked at two types: Simple Strings and Bulk Strings. They solve different problems.</p>
+<h2 id="simple-strings">Simple Strings</h2>
+<p>Simple Strings are for short status replies that will never contain a newline inside them. Things like <code>OK</code> or <code>PONG</code>.</p>
+<pre class="astro-code catppuccin-latte" style="background-color:#eff1f5;color:#4c4f69; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>+OK\r\n</span></span>
+<span class="line"><span></span></span></code></pre>
+<p>The <code>+</code> tells the parser a Simple String is coming. It reads until it hits <code>\r\n</code> and that is the whole string. Done.</p>
+<p>Redis uses <code>\r\n</code> (carriage return + newline) instead of just <code>\n</code> as the line terminator. It is a strict network convention and every RESP parser expects it.</p>
+<p>Simple Strings are fast precisely because they are limited. No length to track, no memory to pre-allocate. Just scan for <code>\r\n</code> and you are done. The tradeoff is they cannot hold binary data or newlines.</p>
+<h2 id="bulk-strings">Bulk Strings</h2>
+<p>Bulk Strings are the workhorse. They can hold anything: spaces, newlines, binary data, an entire file. They do it with a technique called <strong>length-prefixing</strong>.</p>
+<p>Before sending the actual data, you send the byte count. The parser reads the number first, allocates exactly that much memory, and then reads exactly that many bytes without caring what is inside them.</p>
+<pre class="astro-code catppuccin-latte" style="background-color:#eff1f5;color:#4c4f69; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>$5\r\nhello\r\n</span></span>
+<span class="line"><span></span></span></code></pre>
+<p>The <code>$</code> says a Bulk String is coming. <code>5</code> is the length. Then <code>hello</code> is the data. Then <code>\r\n</code> to close it off.</p>
+<p>Walk through what the parser does:</p>
+<ol>
+<li>Sees <code>$</code>. Knows a Bulk String is coming.</li>
+<li>Reads up to <code>\r\n</code>, gets the number <code>5</code>.</li>
+<li>Allocates 5 bytes of memory.</li>
+<li>Reads exactly 5 bytes into that memory. Does not look at them. Does not care what they contain.</li>
+<li>Consumes the trailing <code>\r\n</code>. Done.</li>
+</ol>
+<p>That messy bio from earlier becomes completely unambiguous:</p>
+<pre class="astro-code catppuccin-latte" style="background-color:#eff1f5;color:#4c4f69; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>$27\r\ni love coding and\n swimming\r\n</span></span>
+<span class="line"><span></span></span></code></pre>
+<p>The server reads 27 bytes and stops. The <code>\n</code> inside the value is just byte number 18. Nothing special. The protocol never needed to understand the data, just count it.</p>
+<h2 id="the-thing-that-clicked-for-me">The thing that clicked for me</h2>
+<p>The insight is that RESP does not try to make the data safe. It does not escape characters or wrap things in quotes. It just tells the parser how many bytes to expect, so the parser never has to look inside the data at all.</p>
+<p>Length-prefixing is the trick behind almost every binary protocol you will encounter. HTTP chunked encoding does it. MessagePack does it. Protocol Buffers do it. Once you see it here in RESP, you will recognize it everywhere.</p>  </div> </article>  </main> <!-- ── Footer: a pile of sleeping cats ── --> <footer class="mt-4 border-t-3 border-cat-ink/10 bg-cat-parchment/60 px-5 sm:px-8 py-5"> <div class="flex items-end justify-center gap-3 mb-3"> <img src="/meow-blog/ui/cat-sleep-grey.png" alt="" class="h-9 pixelated animate-float" style="animation-delay:0s"><img src="/meow-blog/ui/cat-sleep-cream.png" alt="" class="h-9 pixelated animate-float" style="animation-delay:0.4s"><img src="/meow-blog/ui/cat-sleep-white.png" alt="" class="h-9 pixelated animate-float" style="animation-delay:0.8s"><img src="/meow-blog/ui/cat-sleep-orange.png" alt="" class="h-9 pixelated animate-float" style="animation-delay:1.2000000000000002s"> </div> <p class="text-center text-xs text-cat-cocoa/80">
+made with <span class="text-cat-rose">♥</span> by Aarshita Acharya™
+</p> </footer> </div> </body></html>
