@@ -1,0 +1,55 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import PostCard from "../../components/PostCard.astro";
+import Pager from "../../components/Pager.astro";
+
+export async function getStaticPaths() {
+  const PAGE_SIZE = 4; // keep in sync with index.astro
+  const posts = (await getCollection("blog", ({ data }) => !data.draft)).sort(
+    (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
+  );
+  const totalPages = Math.max(1, Math.ceil(posts.length / PAGE_SIZE));
+  const paths = [];
+  // page 1 lives on the homepage, so only generate 2..totalPages here
+  for (let p = 2; p <= totalPages; p++) {
+    paths.push({
+      params: { page: String(p) },
+      props: {
+        pagePosts: posts.slice((p - 1) * PAGE_SIZE, p * PAGE_SIZE),
+        page: p,
+        totalPages,
+      },
+    });
+  }
+  return paths;
+}
+
+const { pagePosts, page, totalPages } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const postUrl = (slug: string) => `${base}blog/${slug}`;
+// page 2's "prev" goes home; otherwise to the previous numbered page
+const prevUrl = page === 2 ? base : `${base}page/${page - 1}`;
+const nextUrl = page < totalPages ? `${base}page/${page + 1}` : null;
+---
+<BaseLayout title={`posts · page ${page} · meow.log`}>
+  <a href={base} class="btn btn--ghost text-[9px] py-1.5 px-3 mb-6">← home</a>
+
+  <h2 class="text-lg text-cat-cocoa mb-5 flex items-center gap-2">
+    <img src={`${base}ui/cat-sit.png`} alt="" class="w-6 pixelated" /> more posts
+  </h2>
+
+  <div class="grid gap-5 sm:grid-cols-2">
+    {pagePosts.map((p: any) => (
+      <PostCard
+        url={postUrl(p.slug)}
+        title={p.data.title}
+        description={p.data.description}
+        date={p.data.date}
+        tags={p.data.tags}
+      />
+    ))}
+  </div>
+
+  <Pager prevUrl={prevUrl} nextUrl={nextUrl} page={page} totalPages={totalPages} />
+</BaseLayout>

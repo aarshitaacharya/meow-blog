@@ -5,12 +5,17 @@ import CatPanel from "../components/CatPanel.astro";
 import PostCard from "../components/PostCard.astro";
 import RetroButton from "../components/RetroButton.astro";
 import PawDivider from "../components/PawDivider.astro";
+import Pager from "../components/Pager.astro";
 
+const PAGE_SIZE = 4;
 const base = import.meta.env.BASE_URL;
 const posts = (await getCollection("blog", ({ data }) => !data.draft)).sort(
   (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
 );
+const totalPages = Math.max(1, Math.ceil(posts.length / PAGE_SIZE));
+const pagePosts = posts.slice(0, PAGE_SIZE); // page 1
 const postUrl = (slug: string) => `${base}blog/${slug}`;
+const nextUrl = totalPages > 1 ? `${base}page/2` : null;
 ---
 <BaseLayout title="meow.log · a cutesy dev blog" description="Tiny technical notes wrapped in pixel cats.">
   <!-- Hero -->
@@ -39,16 +44,19 @@ const postUrl = (slug: string) => `${base}blog/${slug}`;
   {posts.length === 0 ? (
     <p class="text-cat-cocoa/70">No posts yet — head to <code>/admin</code> to write your first one!</p>
   ) : (
-    <div class="grid gap-5 sm:grid-cols-2">
-      {posts.map((p) => (
-        <PostCard
-          url={postUrl(p.slug)}
-          title={p.data.title}
-          description={p.data.description}
-          date={p.data.date}
-          tags={p.data.tags}
-        />
-      ))}
-    </div>
+    <>
+      <div class="grid gap-5 sm:grid-cols-2">
+        {pagePosts.map((p) => (
+          <PostCard
+            url={postUrl(p.slug)}
+            title={p.data.title}
+            description={p.data.description}
+            date={p.data.date}
+            tags={p.data.tags}
+          />
+        ))}
+      </div>
+      {totalPages > 1 && <Pager prevUrl={null} nextUrl={nextUrl} page={1} totalPages={totalPages} />}
+    </>
   )}
 </BaseLayout>

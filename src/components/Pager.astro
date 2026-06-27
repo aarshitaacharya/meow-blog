@@ -1,0 +1,32 @@
+---
+// Prev / next page arrows using the banner sprites. Pass null to disable a side.
+interface Props {
+  prevUrl?: string | null;
+  nextUrl?: string | null;
+  page: number;
+  totalPages: number;
+}
+const { prevUrl, nextUrl, page, totalPages } = Astro.props;
+const base = import.meta.env.BASE_URL;
+---
+<nav class="mt-10 flex items-center justify-between gap-4" aria-label="Pagination">
+  {prevUrl ? (
+    <a href={prevUrl} class="group relative inline-flex w-28 shrink-0" aria-label="Newer posts">
+      <img src={`${base}ui/arrow-prev.png`} alt="" class="w-full pixelated transition-transform group-hover:-translate-x-1" />
+      <span class="absolute inset-0 flex items-center justify-center pl-4 font-pixel text-[8px] text-cat-ink">prev</span>
+    </a>
+  ) : (
+    <span class="w-28 shrink-0"></span>
+  )}
+
+  <span class="font-pixel text-[9px] text-cat-cocoa/70">{page} / {totalPages}</span>
+
+  {nextUrl ? (
+    <a href={nextUrl} class="group relative inline-flex w-28 shrink-0" aria-label="Older posts">
+      <img src={`${base}ui/arrow-next.png`} alt="" class="w-full pixelated transition-transform group-hover:translate-x-1" />
+      <span class="absolute inset-0 flex items-center justify-center pr-4 font-pixel text-[8px] text-cat-ink">next</span>
+    </a>
+  ) : (
+    <span class="w-28 shrink-0"></span>
+  )}
+</nav>
