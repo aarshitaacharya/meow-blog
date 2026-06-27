@@ -1,3 +1,3 @@
-# 🐾 meow.log — a cutesy retro dev blog
+# 🐾 meow.log — a dev blog
 
 A pixel-art technical blog. 
