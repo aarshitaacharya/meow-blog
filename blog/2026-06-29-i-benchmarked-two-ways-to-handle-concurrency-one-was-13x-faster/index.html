@@ -1,0 +1,67 @@
+<!DOCTYPE html><html lang="en"> <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Channels feel cleaner. Mutexes are faster for reads."><link rel="icon" type="image/png" href="/meow-blog/ui/paw.png"><title>I benchmarked two ways to handle concurrency. One was 13x faster. · meow.log</title><link rel="stylesheet" href="/meow-blog/_astro/_slug_.Df1JtYHp.css"><script type="module" src="/meow-blog/_astro/hoisted.C_y83067.js"></script></head> <body class="min-h-screen flex flex-col items-center px-3 py-6 sm:py-10"> <!-- ── The whole site lives inside one centered pixel panel ── --> <div class="w-full max-w-3xl frame !bg-cat-cream p-0 overflow-hidden"> <!-- window title bar --> <div class="titlebar !rounded-none justify-between !m-0 px-4 py-2.5"> <span class="flex items-center gap-2"> <span class="flex gap-1" aria-hidden="true"> <i class="w-2.5 h-2.5 rounded-full bg-cat-rose block"></i> <i class="w-2.5 h-2.5 rounded-full bg-cat-butter block"></i> <i class="w-2.5 h-2.5 rounded-full bg-cat-blue block"></i> </span>
+~/meow.log
+</span> <span class="opacity-70 text-[8px]">v1.0.0</span> </div> <!-- ── Header: PLAY-sign logo + nav ── --> <header class="flex flex-wrap items-center justify-between gap-4 px-5 sm:px-8 pt-6 pb-4"> <a href="/meow-blog/" class="flex items-center gap-3 group"> <img src="/meow-blog/ui/play-sign.png" alt="meow.log" class="h-11 pixelated drop-shadow-[3px_3px_0_#3a2c24] group-hover:animate-wiggle"> <span class="sr-only">meow.log home</span> </a> <nav class="flex flex-wrap items-center gap-2"> <a href="/meow-blog/" class="btn btn--ghost text-[9px] py-2 px-3 ">Home</a><a href="/meow-blog/about" class="btn btn--ghost text-[9px] py-2 px-3 ">About</a>  <a href="/meow-blog/admin" data-admin-link class="btn btn--pink text-[9px] py-2 px-3 hidden">✎ New post</a> </nav>  </header> <hr class="border-0 h-1 bg-cat-ink/10 mx-5 sm:mx-8"> <!-- ── Page content ── --> <main class="px-5 sm:px-8 py-7">  <a href="/meow-blog/" class="btn btn--ghost text-[9px] py-1.5 px-3 mb-6">← back</a> <article> <header class="mb-6"> <h1 class="text-2xl sm:text-3xl text-cat-cocoa leading-relaxed mb-3">I benchmarked two ways to handle concurrency. One was 13x faster.</h1> <div class="flex flex-wrap items-center gap-3 text-sm text-cat-cocoa/80"> <time class="font-pixel text-[10px]">June 29, 2026</time> <ul class="flex flex-wrap gap-2"> <li class="font-pixel text-[8px] uppercase bg-cat-parchment border-2 border-cat-ink/30 rounded-pill px-2 py-1">#go</li><li class="font-pixel text-[8px] uppercase bg-cat-parchment border-2 border-cat-ink/30 rounded-pill px-2 py-1">#mutex</li><li class="font-pixel text-[8px] uppercase bg-cat-parchment border-2 border-cat-ink/30 rounded-pill px-2 py-1">#channels</li> </ul> </div> <p class="mt-3 text-cat-ink/80 italic">Channels feel cleaner. Mutexes are faster for reads.</p> </header> <div class="flex items-center justify-center gap-3 my-8 select-none" aria-hidden="true"> <img src="/meow-blog/ui/paw.png" alt="" class="w-5 h-5 pixelated opacity-70 animate-float" style="animation-delay:0s"><img src="/meow-blog/ui/paw.png" alt="" class="w-5 h-5 pixelated opacity-70 animate-float" style="animation-delay:0.25s"><img src="/meow-blog/ui/paw.png" alt="" class="w-5 h-5 pixelated opacity-70 animate-float" style="animation-delay:0.5s"><img src="/meow-blog/ui/paw.png" alt="" class="w-5 h-5 pixelated opacity-70 animate-float" style="animation-delay:0.75s"><img src="/meow-blog/ui/paw.png" alt="" class="w-5 h-5 pixelated opacity-70 animate-float" style="animation-delay:1s"> </div> <div class="prose-cat">  <p>Previously, I built the same key-value server two ways. One used a <code>sync.RWMutex</code> to protect a shared map. The other used a channel and a single background goroutine that owned the map exclusively. Both were correct. Neither crashed. But I wanted to know which one was actually faster, so I wrote a benchmark.</p>
+<h2 id="the-two-approaches-quickly">The two approaches, quickly</h2>
+<p><strong>Mutex:</strong> Every goroutine that wants to read or write the map asks for a lock first. Multiple readers can hold <code>RLock</code> at the same time. Writers get exclusive access with <code>Lock</code>. The map is shared memory, protected by a gate.</p>
+<pre class="astro-code catppuccin-latte" style="background-color:#eff1f5;color:#4c4f69; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="go"><code><span class="line"><span style="color:#4C4F69">state</span><span style="color:#7C7F93">.</span><span style="color:#4C4F69">mu</span><span style="color:#7C7F93">.</span><span style="color:#1E66F5;font-style:italic">RLock</span><span style="color:#7C7F93">()</span></span>
+<span class="line"><span style="color:#4C4F69">val </span><span style="color:#179299">:=</span><span style="color:#4C4F69"> state</span><span style="color:#7C7F93">.</span><span style="color:#4C4F69">db</span><span style="color:#7C7F93">[</span><span style="color:#4C4F69">key</span><span style="color:#7C7F93">]</span></span>
+<span class="line"><span style="color:#4C4F69">state</span><span style="color:#7C7F93">.</span><span style="color:#4C4F69">mu</span><span style="color:#7C7F93">.</span><span style="color:#1E66F5;font-style:italic">RUnlock</span><span style="color:#7C7F93">()</span></span>
+<span class="line"></span></code></pre>
+<p><strong>Channel:</strong> One background goroutine owns the map. Everyone else sends it a function through a channel and waits for a reply on a separate response channel. The map is never shared. Ownership moves through communication.</p>
+<pre class="astro-code catppuccin-latte" style="background-color:#eff1f5;color:#4c4f69; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="go"><code><span class="line"><span style="color:#4C4F69">resChan </span><span style="color:#179299">:=</span><span style="color:#1E66F5;font-style:italic"> make</span><span style="color:#7C7F93">(</span><span style="color:#8839EF">chan</span><span style="color:#8839EF"> string</span><span style="color:#7C7F93">)</span></span>
+<span class="line"><span style="color:#4C4F69">state</span><span style="color:#7C7F93">.</span><span style="color:#4C4F69">actions </span><span style="color:#179299">&#x3C;-</span><span style="color:#8839EF"> func</span><span style="color:#7C7F93">()</span><span style="color:#7C7F93"> {</span></span>
+<span class="line"><span style="color:#4C4F69">    resChan </span><span style="color:#179299">&#x3C;-</span><span style="color:#4C4F69"> state</span><span style="color:#7C7F93">.</span><span style="color:#4C4F69">db</span><span style="color:#7C7F93">[</span><span style="color:#4C4F69">key</span><span style="color:#7C7F93">]</span></span>
+<span class="line"><span style="color:#7C7F93">}</span></span>
+<span class="line"><span style="color:#8839EF">return</span><span style="color:#179299"> &#x3C;-</span><span style="color:#4C4F69">resChan</span></span>
+<span class="line"></span></code></pre>
+<h2 id="the-benchmark">The benchmark</h2>
+<p>I used Go’s built-in benchmark tool with <code>b.RunParallel</code>, which spawns goroutines to slam the same operation concurrently. This simulates what actually happens on the server: many clients reading at the same time.</p>
+<pre class="astro-code catppuccin-latte" style="background-color:#eff1f5;color:#4c4f69; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word;" tabindex="0" data-language="plaintext"><code><span class="line"><span>go test -bench=. -benchtime=10s -timeout=120s</span></span>
+<span class="line"><span></span></span></code></pre>
+<p>Results on an i9-9880H, 16 cores:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Backend</th><th>Operations</th><th>Speed</th></tr></thead><tbody><tr><td>Mutex GET</td><td>260,059,455</td><td><strong>48.59 ns/op</strong></td></tr><tr><td>Channel GET</td><td>17,532,946</td><td><strong>640.1 ns/op</strong></td></tr></tbody></table>
+<p>The mutex was <strong>13x faster</strong> for concurrent reads.</p>
+<h2 id="why">Why</h2>
+<p>The mutex result makes sense once you think about what <code>RLock</code> actually does. Multiple goroutines can hold a read lock simultaneously. So all 16 benchmark goroutines are reading the map at the same time, in parallel. The only overhead is the lock itself, which is just an atomic CPU instruction. Very cheap.</p>
+<p>The channel backend cannot do this. Every single read, no matter how simple, has to:</p>
+<ol>
+<li>Create a new response channel</li>
+<li>Send a function onto the <code>actions</code> channel</li>
+<li>Wait for the background goroutine to pick it up</li>
+<li>Execute the function</li>
+<li>Send the result back on the response channel</li>
+<li>The caller receives it</li>
+</ol>
+<p>That is a lot of steps for a map lookup. And crucially, the background goroutine is a single bottleneck. Even with 16 goroutines hammering it, only one read happens at a time. All the concurrency is serialized through one chokepoint.</p>
+<blockquote>
+<p>The mutex lets readers run in parallel. The channel forces them to take turns.</p>
+</blockquote>
+<h2 id="so-channels-are-bad">So channels are bad?</h2>
+<p>No. They are just the wrong tool for this specific workload: many concurrent reads of a simple value.</p>
+<p>Channels shine when the work being coordinated is complex, stateful, or when you want to avoid thinking about locks entirely. For a system where writes are rare and reads are heavy, a <code>RWMutex</code> is the better fit. For something where every operation changes state and ordering matters, channels keep the logic clean.</p>
+<p>This is also why Redis uses neither. It avoids the problem entirely with a single-threaded event loop. One goroutine, no sharing, no locks, no channels needed. The architecture eliminates the question rather than answering it.</p>
+<h2 id="what-i-got-wrong-last-week">What I got wrong last week</h2>
+<p>In the last post I said channels are the better architecture once the system grows. That was too broad. The benchmark shows the real tradeoff: channels trade performance for simplicity of ownership. For a read-heavy cache, that is a bad trade. For a write-heavy coordinator, it might be the right one.</p>
+<p>The lesson is not “use channels” or “use mutexes.” It is: know what your workload looks like, then measure.</p>  </div> </article>  </main> <!-- ── Footer: a pile of sleeping cats ── --> <footer class="mt-4 border-t-3 border-cat-ink/10 bg-cat-parchment/60 px-5 sm:px-8 py-5"> <div class="flex items-end justify-center gap-3 mb-3"> <img src="/meow-blog/ui/cat-sleep-grey.png" alt="" class="h-9 pixelated animate-float" style="animation-delay:0s"><img src="/meow-blog/ui/cat-sleep-cream.png" alt="" class="h-9 pixelated animate-float" style="animation-delay:0.4s"><img src="/meow-blog/ui/cat-sleep-white.png" alt="" class="h-9 pixelated animate-float" style="animation-delay:0.8s"><img src="/meow-blog/ui/cat-sleep-orange.png" alt="" class="h-9 pixelated animate-float" style="animation-delay:1.2000000000000002s"> </div> <p class="text-center text-xs text-cat-cocoa/80">
+made with <span class="text-cat-rose">♥</span> by Aarshita Acharya™
+</p> </footer> </div> </body></html>
