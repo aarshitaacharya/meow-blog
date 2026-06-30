@@ -1,0 +1,38 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import PawDivider from "../../components/PawDivider.astro";
+
+const posts = await getCollection("blog", ({ data }) => !data.draft);
+const tagCounts = posts
+  .flatMap((p) => p.data.tags)
+  .reduce<Record<string, number>>((acc, t) => {
+    acc[t] = (acc[t] ?? 0) + 1;
+    return acc;
+  }, {});
+const tags = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]);
+const base = import.meta.env.BASE_URL;
+---
+<BaseLayout
+  title="all tags · meow.log"
+  description="Browse every topic covered on meow.log, from Go to Redis to concurrency."
+>
+  <a href={base} class="btn btn--ghost text-[9px] py-1.5 px-3 mb-6">← back</a>
+
+  <h1 class="text-xl sm:text-2xl text-cat-cocoa mb-5 leading-relaxed">all tags</h1>
+
+  <PawDivider />
+
+  <ul class="flex flex-wrap gap-3 mt-6">
+    {tags.map(([tag, count]) => (
+      <li>
+        <a
+          href={`${base}tags/${tag}`}
+          class="font-pixel text-[9px] uppercase bg-cat-parchment border-2 border-cat-ink/30 rounded-pill px-3 py-2 inline-flex items-center gap-2 hover:text-cat-rose"
+        >
+          #{tag} <span class="opacity-60">({count})</span>
+        </a>
+      </li>
+    ))}
+  </ul>
+</BaseLayout>

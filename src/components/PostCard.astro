@@ -29,7 +29,12 @@ const iso = date.toISOString().slice(0, 10);
       <div class="flex flex-wrap items-center justify-between gap-3">
         <ul class="flex flex-wrap gap-2">
           {tags.map((t) => (
-            <li class="font-pixel text-[8px] uppercase bg-cat-parchment border-2 border-cat-ink/30 rounded-pill px-2 py-1">#{t}</li>
+            <li>
+              <a
+                href={`${base}tags/${t}`}
+                class="font-pixel text-[8px] uppercase bg-cat-parchment border-2 border-cat-ink/30 rounded-pill px-2 py-1 inline-block hover:text-cat-rose"
+              >#{t}</a>
+            </li>
           ))}
         </ul>
         <a href={url} class="btn btn--sky text-[9px] py-2 px-3">OK →</a>

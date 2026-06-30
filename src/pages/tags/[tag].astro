@@ -1,0 +1,48 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import PostCard from "../../components/PostCard.astro";
+import PawDivider from "../../components/PawDivider.astro";
+
+export async function getStaticPaths() {
+  const posts = await getCollection("blog", ({ data }) => !data.draft);
+  const tags = [...new Set(posts.flatMap((p) => p.data.tags))];
+  return tags.map((tag) => ({
+    params: { tag },
+    props: {
+      posts: posts
+        .filter((p) => p.data.tags.includes(tag))
+        .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf()),
+    },
+  }));
+}
+
+const { tag } = Astro.params;
+const { posts } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const postUrl = (slug: string) => `${base}blog/${slug}`;
+---
+<BaseLayout
+  title={`#${tag} · meow.log`}
+  description={`Posts tagged #${tag} on meow.log.`}
+>
+  <a href={`${base}tags`} class="btn btn--ghost text-[9px] py-1.5 px-3 mb-6">← all tags</a>
+
+  <h1 class="text-xl sm:text-2xl text-cat-cocoa mb-5 leading-relaxed">
+    posts tagged <span class="text-cat-rose">#{tag}</span>
+  </h1>
+
+  <PawDivider />
+
+  <div class="grid gap-5 sm:grid-cols-2 mt-6">
+    {posts.map((p) => (
+      <PostCard
+        url={postUrl(p.slug)}
+        title={p.data.title}
+        description={p.data.description}
+        date={p.data.date}
+        tags={p.data.tags}
+      />
+    ))}
+  </div>
+</BaseLayout>

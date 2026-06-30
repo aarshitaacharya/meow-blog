@@ -6,17 +6,34 @@ export async function getStaticPaths() {
   const posts = await getCollection("blog", ({ data }) => !data.draft);
   return posts.map((post) => ({
     params: { slug: post.slug },
-    props: { post },
+    props: { post, allPosts: posts },
   }));
 }
-const { post } = Astro.props;
+const { post, allPosts } = Astro.props;
 const { Content } = await post.render();
+
+// Related posts: other posts sharing at least one tag, ranked by number of
+// shared tags (most-overlapping first), then by recency. Capped at 3.
+const related = allPosts
+  .filter((p) => p.slug !== post.slug)
+  .map((p) => ({
+    post: p,
+    sharedTags: p.data.tags.filter((t) => post.data.tags.includes(t)).length,
+  }))
+  .filter((p) => p.sharedTags > 0)
+  .sort(
+    (a, b) =>
+      b.sharedTags - a.sharedTags || b.post.data.date.valueOf() - a.post.data.date.valueOf()
+  )
+  .slice(0, 3)
+  .map((p) => p.post);
 ---
 <PostLayout
   title={post.data.title}
   description={post.data.description}
   date={post.data.date}
   tags={post.data.tags}
+  relatedPosts={related}
 >
   <Content />
 </PostLayout>
