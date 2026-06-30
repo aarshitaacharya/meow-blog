@@ -8,6 +8,7 @@ interface Props {
   image?: string;
   type?: "website" | "article";
   publishDate?: Date;
+  jsonLd?: Record<string, any> | Record<string, any>[];
 }
 const {
   title = "meow.log",
@@ -15,6 +16,7 @@ const {
   image,
   type = "website",
   publishDate,
+  jsonLd,
 } = Astro.props;
 
 const base = import.meta.env.BASE_URL;
@@ -25,6 +27,28 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
 // Fall back to a site-wide default image if a page doesn't supply one
 const ogImage = new URL(image ?? `${base}ui/play-sign.png`, Astro.site).href;
+
+// Site-wide schema, always present. Individual pages can pass additional
+// schema objects (e.g. BlogPosting) via the jsonLd prop, and we merge them
+// into one array so every page ships at least WebSite + Person.
+const siteSchema = [
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "meow.log",
+    url: new URL(base, Astro.site).href,
+    description: "A cutesy retro dev blog",
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: "Aarshita Acharya",
+    url: new URL(base, Astro.site).href,
+  },
+];
+const fullSchema = jsonLd
+  ? [...siteSchema, ...(Array.isArray(jsonLd) ? jsonLd : [jsonLd])]
+  : siteSchema;
 ---
 
 <!doctype html>
@@ -53,6 +77,9 @@ const ogImage = new URL(image ?? `${base}ui/play-sign.png`, Astro.site).href;
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImage} />
+
+    <!-- Structured data (JSON-LD) -->
+    <script type="application/ld+json" set:html={JSON.stringify(fullSchema)} />
   </head>
 
   <body class="min-h-screen flex flex-col items-center px-3 py-6 sm:py-10">
