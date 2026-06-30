@@ -5,10 +5,26 @@ import Nav from "../components/Nav.astro";
 interface Props {
   title?: string;
   description?: string;
+  image?: string;
+  type?: "website" | "article";
+  publishDate?: Date;
 }
-const { title = "meow.log", description = "A cutesy retro dev blog" } = Astro.props;
+const {
+  title = "meow.log",
+  description = "A cutesy retro dev blog",
+  image,
+  type = "website",
+  publishDate,
+} = Astro.props;
+
 const base = import.meta.env.BASE_URL;
 const sleepers = ["cat-sleep-grey", "cat-sleep-cream", "cat-sleep-white", "cat-sleep-orange"];
+
+// Canonical + OG URL — always the absolute, current page URL
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+
+// Fall back to a site-wide default image if a page doesn't supply one
+const ogImage = new URL(image ?? `${base}ui/play-sign.png`, Astro.site).href;
 ---
 
 <!doctype html>
@@ -18,7 +34,25 @@ const sleepers = ["cat-sleep-grey", "cat-sleep-cream", "cat-sleep-white", "cat-s
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
     <link rel="icon" type="image/png" href={`${base}ui/paw.png`} />
+    <link rel="canonical" href={canonicalURL} />
     <title>{title}</title>
+
+    <!-- Open Graph (Facebook, LinkedIn, Slack, Discord, iMessage, etc.) -->
+    <meta property="og:type" content={type} />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:site_name" content="meow.log" />
+    {type === "article" && publishDate && (
+      <meta property="article:published_time" content={publishDate.toISOString()} />
+    )}
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
   </head>
 
   <body class="min-h-screen flex flex-col items-center px-3 py-6 sm:py-10">
